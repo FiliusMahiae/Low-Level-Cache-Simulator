@@ -7,8 +7,8 @@
 
 
 typedef struct { 
-unsigned char ETQ; 
-unsigned char Data[TAM_LINEA]; 
+    unsigned char ETQ; 
+    unsigned char Data[TAM_LINEA]; 
 } T_CACHE_LINE; 
 
 
@@ -33,8 +33,6 @@ int main(int argc, char **argv){
     MostrarCACHE(cache);
 
     lecturaArchivoBinario("CONTENTS_RAM.bin", Simul_RAM);
-    
-
 }
 
 
@@ -63,7 +61,8 @@ void MostrarCACHE(T_CACHE_LINE *tbl){
 
 void lecturaArchivoBinario(char *nombreFichero, unsigned char *pSimul_RAM){
     FILE *arch = NULL;
-    char bitLeido;
+    char bitLeido='\0';
+    int ramOcupada=0 ;
 
     arch = fopen(nombreFichero, "rb");
     if (arch == NULL){
@@ -71,11 +70,10 @@ void lecturaArchivoBinario(char *nombreFichero, unsigned char *pSimul_RAM){
         exit(1);
     }
         
-    while((bitLeido = getc(arch)) != EOF){
-        pSimul_RAM = bitLeido;
-        pSimul_RAM++;
+    while((bitLeido = getc(arch)) != EOF || ramOcupada<TAM_RAM){
+        pSimul_RAM[ramOcupada] = bitLeido;
+        ramOcupada++;
     }
-
-
+    
     fclose(arch);
 }
