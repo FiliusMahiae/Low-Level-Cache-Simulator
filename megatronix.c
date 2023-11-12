@@ -11,13 +11,10 @@ typedef struct {
     unsigned char Data[TAM_LINEA]; 
 } T_CACHE_LINE; 
 
-
-
-
 void LimpiarCACHE(T_CACHE_LINE tbl[NUM_FILAS]); 
 void inicializarLinea(T_CACHE_LINE *linea);
 void VolcarCACHE(T_CACHE_LINE *tbl); 
-int getRam(unsigned int acceso);
+int getRam(unsigned int acceso, T_CACHE_LINE* cache, char* texto, int* globalTime);
 void ParsearDireccion(unsigned int addr, int *ETQ, int *palabra, int *linea, int *bloque); 
 void TratarFallo(T_CACHE_LINE *tbl, char *MRAM, int ETQ, int linea, int bloque); 
 void MostrarCACHE(T_CACHE_LINE *tbl);
@@ -29,6 +26,7 @@ int main(int argc, char **argv){
     int globalTime=0, numFallos=0;
     T_CACHE_LINE cache[NUM_FILAS];
     unsigned char Simul_RAM[TAM_RAM];
+    char texto[100];
 
     LimpiarCACHE(cache);
     MostrarCACHE(cache);
@@ -43,7 +41,13 @@ int main(int argc, char **argv){
         exit(-1);
     }
 
-    //getRam(0x22E);
+    unsigned int direccion = 0;
+
+    while(fscanf(accesos,"%x", &direccion) != EOF){
+        getRam(direccion, cache, texto, &globalTime);
+    }
+
+    fclose(accesos);
 
     return 0;
 }
@@ -90,17 +94,22 @@ void lecturaArchivoBinario(char *nombreFichero, unsigned char *pSimul_RAM){
     fclose(arch);
 }
 
-int getRam(unsigned int acceso){
+int getRam(unsigned int acceso, T_CACHE_LINE *cache, char* texto, int* globalTime){
     int ETQ=0;
     int palabra=0;
     int linea=0;
     int bloque=0;
+    
     ParsearDireccion(acceso,&ETQ,&palabra,&linea,&bloque);
-    //printf("%d\n",ETQ);
-    //printf("%d\n",palabra);
-    //printf("%d\n",bloque);
-    //parsea direccion
-    //se busca
+
+    if((unsigned char)ETQ == cache[linea].ETQ){
+        printf("Entre\n");
+        (*globalTime)++;
+        printf("T: %d, Acierto de CACHE, ADDR %04X Label %X linea %02X palabra %02X DATO %02X\n",*globalTime,acceso,ETQ,linea,palabra,cache[linea].Data[palabra]);
+        MostrarCACHE(cache);
+        *texto=(char)cache[linea].Data[palabra];
+        (*texto)++;
+    }
         //si fallo
         //se trata
         //se sale
@@ -112,8 +121,8 @@ int getRam(unsigned int acceso){
 
 void ParsearDireccion(unsigned int addr, int *ETQ, int *palabra, int *linea, int *bloque){
     *ETQ = (addr & 0b111110000000) >> 7;
-    *bloque = (addr & 0b000001110000) >> 4;
+    *linea = (addr & 0b000001110000) >> 4;
     *palabra = (addr & 0b000000001111);
-    *linea = *bloque % NUM_FILAS;
+    *bloque = *ETQ * NUM_FILAS;
 }
 
