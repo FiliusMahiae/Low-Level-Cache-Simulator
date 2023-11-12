@@ -14,7 +14,7 @@ typedef struct {
 void LimpiarCACHE(T_CACHE_LINE tbl[NUM_FILAS]); 
 void inicializarLinea(T_CACHE_LINE *linea);
 void VolcarCACHE(T_CACHE_LINE *tbl); 
-int getRam(unsigned int acceso, T_CACHE_LINE* cache, char* texto, int* globalTime);
+int getRam(unsigned int acceso, T_CACHE_LINE* cache, char* texto, int* globalTime,  int *numFallos, unsigned char *ram);
 void ParsearDireccion(unsigned int addr, int *ETQ, int *palabra, int *linea, int *bloque); 
 void TratarFallo(T_CACHE_LINE *tbl, char *MRAM, int ETQ, int linea, int bloque); 
 void MostrarCACHE(T_CACHE_LINE *tbl);
@@ -44,7 +44,9 @@ int main(int argc, char **argv){
     unsigned int direccion = 0;
 
     while(fscanf(accesos,"%x", &direccion) != EOF){
-        getRam(direccion, cache, texto, &globalTime);
+        if(!getRam(direccion, cache, texto, &globalTime, &numFallos, Simul_RAM))
+            getRam(direccion, cache, texto, &globalTime, &numFallos, Simul_RAM);
+
     }
 
     fclose(accesos);
@@ -94,11 +96,12 @@ void lecturaArchivoBinario(char *nombreFichero, unsigned char *pSimul_RAM){
     fclose(arch);
 }
 
-int getRam(unsigned int acceso, T_CACHE_LINE *cache, char* texto, int* globalTime){
+int getRam(unsigned int acceso, T_CACHE_LINE *cache, char* texto, int* globalTime, int *numFallos, unsigned char *ram){
     int ETQ=0;
     int palabra=0;
     int linea=0;
     int bloque=0;
+    int acierto = 0;
     
     ParsearDireccion(acceso,&ETQ,&palabra,&linea,&bloque);
 
@@ -109,14 +112,16 @@ int getRam(unsigned int acceso, T_CACHE_LINE *cache, char* texto, int* globalTim
         MostrarCACHE(cache);
         *texto=(char)cache[linea].Data[palabra];
         (*texto)++;
+        acierto = 1;
     }
-        //si fallo
-        //se trata
-        //se sale
-    
-        //si no hay fallo
-        //se añade al fichero
-        //Se sale
+    else{
+        (*globalTime)+=20;
+        (*numFallos)++;
+        printf("T: %d, Fallo de CACHE %d, ADDR %04X Label %04X linea %02X palabra %02X bloque %02X", *globalTime, *numFallos, acceso, ETQ, linea, palabra, bloque);
+        TratarFallo(cache, ram, ETQ, linea, bloque);
+        printf("\nCargando el bloque %02X en la línea %02X", bloque, linea);
+    }
+    return acierto;
 }
 
 void ParsearDireccion(unsigned int addr, int *ETQ, int *palabra, int *linea, int *bloque){
@@ -126,3 +131,9 @@ void ParsearDireccion(unsigned int addr, int *ETQ, int *palabra, int *linea, int
     *bloque = *ETQ * NUM_FILAS;
 }
 
+void TratarFallo(T_CACHE_LINE *tbl, char *MRAM, int ETQ, int linea, int bloque){
+    tbl[linea].ETQ = ETQ;
+    for(int i=0; i<TAM_LINEA; i++){
+        tbl[linea].Data[i] = (unsigned char) MRAM[TAM_LINEA*bloque + i];
+    }
+}
