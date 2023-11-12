@@ -14,11 +14,12 @@ typedef struct {
 void LimpiarCACHE(T_CACHE_LINE tbl[NUM_FILAS]); 
 void inicializarLinea(T_CACHE_LINE *linea);
 void VolcarCACHE(T_CACHE_LINE *tbl); 
-int getRam(unsigned int acceso, T_CACHE_LINE* cache, char* texto, int* globalTime,  int *numFallos, unsigned char *ram);
+int getRam(unsigned int acceso, T_CACHE_LINE* cache, char* texto, int* globalTime,  int *numFallos, unsigned char *ram, int numAcceso);
 void ParsearDireccion(unsigned int addr, int *ETQ, int *palabra, int *linea, int *bloque); 
 void TratarFallo(T_CACHE_LINE *tbl, char *MRAM, int ETQ, int linea, int bloque); 
 void MostrarCACHE(T_CACHE_LINE *tbl);
 void lecturaArchivoBinario(char *nombreFichero, unsigned char *pSimul_RAM);
+void imprimeEstadisticaDeAccesoYTiempo(int numAccesos, int tiempo, int fallos, char* texto);
 
 
 int main(int argc, char **argv){
@@ -43,11 +44,15 @@ int main(int argc, char **argv){
 
     unsigned int direccion = 0;
 
+    int numAccesos=0;
     while(fscanf(accesos,"%x", &direccion) != EOF){
-        if(!getRam(direccion, cache, texto, &globalTime, &numFallos, Simul_RAM))
-            getRam(direccion, cache, texto, &globalTime, &numFallos, Simul_RAM);
-
+        if(!getRam(direccion, cache, texto, &globalTime, &numFallos, Simul_RAM,numAccesos)){
+            getRam(direccion, cache, texto, &globalTime, &numFallos, Simul_RAM,numAccesos);
+        }
+        numAccesos++;
     }
+
+    imprimeEstadisticaDeAccesoYTiempo(numAccesos,globalTime,numFallos,texto);
 
     fclose(accesos);
 
@@ -96,7 +101,7 @@ void lecturaArchivoBinario(char *nombreFichero, unsigned char *pSimul_RAM){
     fclose(arch);
 }
 
-int getRam(unsigned int acceso, T_CACHE_LINE *cache, char* texto, int* globalTime, int *numFallos, unsigned char *ram){
+int getRam(unsigned int acceso, T_CACHE_LINE *cache, char* texto, int* globalTime, int *numFallos, unsigned char *ram, int numAcceso){
     int ETQ=0;
     int palabra=0;
     int linea=0;
@@ -106,12 +111,10 @@ int getRam(unsigned int acceso, T_CACHE_LINE *cache, char* texto, int* globalTim
     ParsearDireccion(acceso,&ETQ,&palabra,&linea,&bloque);
 
     if((unsigned char)ETQ == cache[linea].ETQ){
-        printf("Entre\n");
         (*globalTime)++;
         printf("T: %d, Acierto de CACHE, ADDR %04X Label %X linea %02X palabra %02X DATO %02X\n",*globalTime,acceso,ETQ,linea,palabra,cache[linea].Data[palabra]);
         MostrarCACHE(cache);
-        *texto=(char)cache[linea].Data[palabra];
-        (*texto)++;
+        texto[numAcceso]=(char)cache[linea].Data[palabra];
         acierto = 1;
     }
     else{
@@ -136,4 +139,13 @@ void TratarFallo(T_CACHE_LINE *tbl, char *MRAM, int ETQ, int linea, int bloque){
     for(int i=0; i<TAM_LINEA; i++){
         tbl[linea].Data[i] = (unsigned char) MRAM[TAM_LINEA*bloque + i];
     }
+}
+
+void imprimeEstadisticaDeAccesoYTiempo(int numAccesos, int tiempo, int fallos, char* texto){
+    printf("Accesos totales: %d; fallos %d, Tiempo medio : %.2f\n",numAccesos,fallos,(float)tiempo/(float)numAccesos);
+    printf("Texto leido: ");
+    for(int i=0;i<numAccesos;i++){
+        printf("%c",texto[i]);
+    }
+    printf("\n");
 }
