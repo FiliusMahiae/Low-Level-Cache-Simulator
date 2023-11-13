@@ -1,5 +1,6 @@
 #include <stdio.h>
 #include <stdlib.h>
+#include<unistd.h>
 
 #define TAM_LINEA 16
 #define NUM_FILAS 8
@@ -18,7 +19,7 @@ int getRam(unsigned int acceso, T_CACHE_LINE* cache, char* texto, int* globalTim
 void ParsearDireccion(unsigned int addr, int *ETQ, int *palabra, int *linea, int *bloque); 
 void TratarFallo(T_CACHE_LINE *tbl, char *MRAM, int ETQ, int linea, int bloque); 
 void MostrarCACHE(T_CACHE_LINE *tbl);
-void lecturaArchivoBinario(char *nombreFichero, unsigned char *pSimul_RAM);
+void lecturaArchivoBinario(FILE *arch, unsigned char *pSimul_RAM);
 void imprimeEstadisticaDeAccesoYTiempo(int numAccesos, int tiempo, int fallos, char* texto);
 
 
@@ -28,18 +29,27 @@ int main(int argc, char **argv){
     T_CACHE_LINE cache[NUM_FILAS];
     unsigned char Simul_RAM[TAM_RAM];
     char texto[100];
+    FILE *arch = NULL;
 
     LimpiarCACHE(cache);
     MostrarCACHE(cache);
 
-    lecturaArchivoBinario("CONTENTS_RAM.bin", Simul_RAM);
+    arch = fopen("CONTENTS_RAM.bin","rb");
+
+    if (arch == NULL){
+        printf("Error: el fichero CONTENTS_RAM.bin no existe\n");
+        return(-1);
+    }
+
+    lecturaArchivoBinario(arch, Simul_RAM);
+    fclose(arch);
 
     FILE *accesos = NULL;
     accesos = fopen("accesos_memoria.txt", "r");
     
     if(accesos==NULL){
         printf("ERROR: archivo \"accesos_memoria.txt\" no encontrado\n");
-        exit(-1);
+        return (-1);
     }
 
     unsigned int direccion = 0;
@@ -50,6 +60,7 @@ int main(int argc, char **argv){
             getRam(direccion, cache, texto, &globalTime, &numFallos, Simul_RAM,numAccesos);
         }
         numAccesos++;
+        sleep(1);
     }
 
     imprimeEstadisticaDeAccesoYTiempo(numAccesos,globalTime,numFallos,texto);
@@ -84,23 +95,14 @@ void MostrarCACHE(T_CACHE_LINE *tbl){
     }
 }
 
-void lecturaArchivoBinario(char *nombreFichero, unsigned char *pSimul_RAM){
-    FILE *arch = NULL;
+void lecturaArchivoBinario(FILE *arch, unsigned char *pSimul_RAM){
     char bitLeido='\0';
     int ramOcupada=0 ;
-
-    arch = fopen(nombreFichero, "rb");
-    if (arch == NULL){
-        printf("Error: el fichero %s no existe", nombreFichero);
-        exit(1);
-    }
         
     while((bitLeido = getc(arch)) != EOF || ramOcupada<TAM_RAM){
         pSimul_RAM[ramOcupada] = bitLeido;
         ramOcupada++;
     }
-
-    fclose(arch);
 }
 
 int getRam(unsigned int acceso, T_CACHE_LINE *cache, char* texto, int* globalTime, int *numFallos, unsigned char *ram, int numAcceso){
