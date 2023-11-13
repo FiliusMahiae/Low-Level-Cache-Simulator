@@ -56,6 +56,8 @@ int main(int argc, char **argv){
 
     fclose(accesos);
 
+    VolcarCACHE(cache);
+
     return 0;
 }
 
@@ -75,7 +77,7 @@ void LimpiarCACHE(T_CACHE_LINE tbl[NUM_FILAS]){
 void MostrarCACHE(T_CACHE_LINE *tbl){
     for (int i=0; i<NUM_FILAS; i++){
         printf("%x      Datos:", tbl[i].ETQ);
-        for(int j=0; j<TAM_LINEA; j++)
+        for(int j=TAM_LINEA-1; j>=0; j--)
             printf(" %x     ", tbl[i].Data[j]);
         printf("\n");
         
@@ -148,4 +150,13 @@ void imprimeEstadisticaDeAccesoYTiempo(int numAccesos, int tiempo, int fallos, c
         printf("%c",texto[i]);
     }
     printf("\n");
+}
+
+
+void VolcarCACHE(T_CACHE_LINE *tbl){
+    FILE *arch =NULL;
+    arch = fopen("CONTENTS_CACHE.bin", "wb");
+    for(int i=0; i<NUM_FILAS; i++)
+        fwrite(tbl[i].Data, sizeof(unsigned char), sizeof(tbl[i].Data), arch);
+    fclose(arch);
 }
