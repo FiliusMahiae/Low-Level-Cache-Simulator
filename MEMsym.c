@@ -30,7 +30,6 @@ int main(int argc, char **argv){
     unsigned char Simul_RAM[TAM_RAM];
     char texto[100];
     FILE *arch = NULL;
-
     LimpiarCACHE(cache);
     MostrarCACHE(cache);
 
