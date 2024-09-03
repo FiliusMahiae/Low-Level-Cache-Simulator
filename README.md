@@ -52,5 +52,6 @@ This project is a simulation of a direct-mapped cache memory system that reads m
 
 ## Made by
 Sergio Mahía Rello
+
 Laura Álvarez Pérez
 
